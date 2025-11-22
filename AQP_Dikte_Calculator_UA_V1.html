@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <title>Калькулятор Товщини Штукатурки AQP UA V1 | Aquaproved</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #000000;
+            min-height: 100vh;
+            padding: 4px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            overflow-y: auto;
+            margin: 0;
+        }
+
+        .container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+            max-width: 500px;
+            width: 100%;
+            padding: 8px;
+            margin: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            text-align: left;
+            margin-bottom: 4px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            min-height: 36px;
+        }
+
+        .reset-btn {
+            position: absolute;
+            right: 0;
+            top: 0;
+            background: transparent;
+            border: 2px solid #33B2D2;
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+            padding: 0;
+        }
+
+        .reset-btn:hover {
+            background: #33B2D2;
+        }
+
+        .reset-btn svg {
+            width: 16px;
+            height: 16px;
+            stroke: #33B2D2;
+            transition: stroke 0.3s;
+        }
+
+        .reset-btn:hover svg {
+            stroke: white;
+        }
+
+        h1 {
+            color: #33B2D2;
+            font-size: clamp(18px, 5vw, 24px);
+            margin-bottom: 0;
+            padding-left: 6px;
+            padding-right: 35px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 100%;
+        }
+
+        .subtitle {
+            color: #535554;
+            font-size: 18px;
+        }
+
+        .input-group {
+            background: #f8f9fa;
+            padding: 6px;
+            border-radius: 8px;
+            margin-bottom: 4px;
+        }
+        
+        .input-group input {
+            background-color: white;
+            font-weight: 600;
+        }
+        
+        .input-group input::placeholder {
+            color: #535554;
+            font-size: 17px;
+            font-weight: 600;
+            padding-left: 0;
+            text-indent: 2px;
+        }
+
+        label {
+            display: block;
+            color: #535554;
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        input[type="text"],
+        input[type="number"], 
+        select {
+            width: 100%;
+            padding: 8px;
+            padding-left: 13px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 18px;
+            height: 42px;
+            line-height: normal;
+            transition: border-color 0.3s;
+            -webkit-appearance: none;
+            appearance: none;
+            background-color: white;
+        }
+
+        input[type="text"]:focus,
+        input[type="number"]:focus, 
+        select:focus {
+            outline: none;
+            border-color: #33B2D2;
+        }
+
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        input[type="number"] {
+            -moz-appearance: textfield;
+        }
+
+        /* Оптимізація для сенсорних екранів */
+        input, select {
+            touch-action: manipulation;
+        }
+
+        input::placeholder {
+            color: #999;
+            font-size: 13px;
+            padding-left: 0;
+            text-indent: 2px;
+        }
+        
+        input[type="text"]::placeholder,
+        input[type="number"]::placeholder {
+            padding-left: 0;
+            text-indent: 2px;
+        }
+        
+        select.placeholder-active {
+            padding-left: 15px;
+        }
+
+        /* Обгортка поля введення для одиниць */
+        .input-with-unit {
+            position: relative;
+        }
+
+        .input-unit {
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #999;
+            font-size: 13px;
+            pointer-events: none;
+            display: none;
+            background: white;
+            white-space: nowrap;
+        }
+
+        .input-with-unit input:not(:placeholder-shown) ~ .input-unit {
+            display: block;
+        }
+        
+        /* Показати одиницю для select коли вибрана опція не-placeholder */
+        .input-with-unit select:not(.placeholder-active) ~ .input-unit {
+            display: block;
+        }
+
+        select {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23535554' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            padding-right: 40px;
+            font-size: 18px;
+            color: #535554;
+        }
+        
+        select.placeholder-active {
+            font-size: 13px;
+            color: #999;
+        }
+
+        select option {
+            color: #535554;
+            font-size: 18px;
+        }
+
+        select option:first-child {
+            color: #999;
+            font-size: 18px;
+        }
+
+        .xps-group {
+            background: #f8f9fa;
+            padding: 6px;
+            border-radius: 8px;
+            margin-bottom: 4px;
+        }
+
+        .xps-header {
+            font-weight: 600;
+            color: #535554;
+            margin-bottom: 4px;
+            font-size: 17px;
+        }
+
+        .xps-inputs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4px;
+        }
+
+        .xps-inputs > div:only-child {
+            grid-column: 1 / -1;
+        }
+
+        .xps-inputs input,
+        .xps-inputs select {
+            margin-top: 0;
+        }
+
+        .result-box {
+            background: linear-gradient(135deg, #33B2D2 0%, #2a8fa8 100%);
+            color: white;
+            padding: 8px;
+            border-radius: 10px;
+            text-align: center;
+            margin-top: 4px;
+        }
+
+        .result-label {
+            font-size: 15px;
+            opacity: 0.9;
+            margin-bottom: 3px;
+        }
+
+        .result-value {
+            font-size: 42px;
+            font-weight: bold;
+            margin-bottom: 2px;
+            display: inline;
+        }
+
+        .result-unit {
+            font-size: 28px;
+            opacity: 0.9;
+            display: inline;
+            margin-left: 8px;
+        }
+
+        .breakdown {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid rgba(255,255,255,0.3);
+        }
+
+        .breakdown-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 3px;
+            font-size: 16px;
+        }
+
+        .breakdown-separator {
+            border-top: 1px solid rgba(255,255,255,0.3);
+            margin: 10px 0;
+        }
+
+        .breakdown-bijkomend {
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 8px;
+            color: #999;
+            font-size: 8.5px;
+        }
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Калькулятор Товщини Штукатурки</h1>
+            <button class="reset-btn" onclick="resetCalculator()" aria-label="Reset calculator">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+                    <path d="M3 3v5h5"></path>
+                </svg>
+            </button>
+        </div>
+
+        <div class="input-group">
+            <input type="text" id="klantInfo" placeholder="Ім'я клієнта або адреса об'єкта">
+        </div>
+
+        <div class="xps-group">
+            <div class="xps-header">Загальна площа</div>
+            <div class="xps-inputs">
+                <div class="input-with-unit">
+                    <input type="number" id="oppervlakte" placeholder="Загальна площа (м²)" min="0" 
+                           step="0.1">
+                    <span class="input-unit">m²</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="xps-group">
+            <div class="xps-header">Гіпсова Штукатурка</div>
+            <div class="xps-inputs">
+                <div class="input-with-unit">
+                    <input type="number" id="zakkenPleister" placeholder="Загальна кількість мішків (MP75/Snelband - 25кг)" min="0">
+                    <span class="input-unit">x 25кг - MP75/Snelband</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="xps-group">
+            <div class="xps-header">Ізоляція XPS</div>
+            <div class="xps-inputs">
+                <div class="input-with-unit">
+                    <input type="number" id="xpsPlaten" placeholder="К-сть панелей (1250×600)" min="0">
+                    <span class="input-unit">шт - 1250×600мм</span>
+                </div>
+                <div class="input-with-unit">
+                    <select id="xpsDikte">
+                        <option value="0" selected>Товщина (мм)</option>
+                        <option value="20">20</option>
+                        <option value="30">30</option>
+                        <option value="40">40</option>
+                        <option value="50">50</option>
+                        <option value="60">60</option>
+                    </select>
+                    <span class="input-unit">мм</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="xps-group">
+            <div class="xps-header">Вирівнювання Стіни</div>
+            <div class="xps-inputs">
+                <div class="input-with-unit">
+                    <input type="number" id="zakkenEgalisatie" placeholder="Загальна кількість мішків (Mixem Sub - 25кг)" min="0">
+                    <span class="input-unit">x 25кг - Mixemsub</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="result-box">
+            <div class="result-label">Середня Загальна Товщина</div>
+            <div class="result-value" id="resultValue">--</div>
+            <div class="result-unit">мм</div>
+            
+            <div class="breakdown" id="breakdown" style="display: none;">
+                <div class="breakdown-item" id="pleisterDikteRow">
+                    <span>Штукатурка, середня товщина:</span>
+                    <span id="pleisterDikte">--</span>
+                </div>
+                <div class="breakdown-item" id="xpsDikteRow">
+                    <span>XPS, середня товщина:</span>
+                    <span id="xpsDikteGem">--</span>
+                </div>
+                <div class="breakdown-item" id="egalisatieDikteRow" style="display: none;">
+                    <span>Вирівнювання, середня товщина:</span>
+                    <span id="egalisatieDikte">--</span>
+                </div>
+                <div class="breakdown-separator" id="bijkomendeSeparator" style="display: none;"></div>
+                <div class="breakdown-item breakdown-bijkomend" id="bijkomendePleisterDikteRow" style="display: none;">
+                    <span>Додаткова, середня загальна товщина:</span>
+                    <span id="bijkomendePleisterDikte">--</span>
+                </div>
+            </div>
+        </div>
+
+
+    </div>
+
+    <script>
+        const inputs = ['oppervlakte', 'zakkenPleister', 'zakkenEgalisatie', 'xpsPlaten', 'xpsDikte'];
+        
+        // Функція для розрахунку позиції одиниці на основі ширини тексту
+        function updateUnitPosition(element) {
+            const unit = element.nextElementSibling;
+            if (!unit || !unit.classList.contains('input-unit')) return;
+            
+            const isSelect = element.tagName === 'SELECT';
+            const value = isSelect ? element.options[element.selectedIndex].text : element.value;
+            
+            // Check if placeholder for select or empty for input
+            if ((isSelect && element.value === '0') || (!isSelect && !value)) {
+                return;
+            }
+            
+            if (value) {
+                // Create temporary span to measure text width
+                const temp = document.createElement('span');
+                temp.style.visibility = 'hidden';
+                temp.style.position = 'absolute';
+                temp.style.font = window.getComputedStyle(element).font;
+                temp.style.fontSize = window.getComputedStyle(element).fontSize;
+                temp.textContent = value;
+                document.body.appendChild(temp);
+                
+                const textWidth = temp.offsetWidth;
+                document.body.removeChild(temp);
+                
+                // Position unit exactly 5px after text value
+                // 13px (padding-left) + textWidth + 5px (gap)
+                unit.style.left = (13 + textWidth + 5) + 'px';
+            }
+        }
+        
+        inputs.forEach(id => {
+            const element = document.getElementById(id);
+            if (element) {
+                element.addEventListener('input', function() {
+                    calculate();
+                    updateUnitPosition(this);
+                });
+                
+                // Initial position update if value exists
+                if (element.value) {
+                    updateUnitPosition(element);
+                }
+            }
+        });
+
+        // Динамічний стиль placeholder для select
+        const xpsDikteSelect = document.getElementById('xpsDikte');
+        xpsDikteSelect.classList.add('placeholder-active'); // Почати зі стилем placeholder
+        
+        xpsDikteSelect.addEventListener('change', function() {
+            if (this.value === '0') {
+                this.classList.add('placeholder-active'); // Малий розмір тексту для placeholder
+            } else {
+                this.classList.remove('placeholder-active'); // Нормальний розмір тексту для значення
+                updateUnitPosition(this); // Оновити позицію одиниці
+            }
+        });
+
+        // Функція скидання
+        function resetCalculator() {
+            // Скинути всі поля введення
+            document.getElementById('klantInfo').value = '';
+            document.getElementById('oppervlakte').value = '';
+            document.getElementById('zakkenPleister').value = '';
+            document.getElementById('zakkenEgalisatie').value = '';
+            document.getElementById('xpsPlaten').value = '';
+            document.getElementById('xpsDikte').value = '0';
+            
+            // Скинути select до стилю placeholder
+            xpsDikteSelect.classList.add('placeholder-active');
+            
+            // Скинути відображення результату
+            document.getElementById('resultValue').textContent = '--';
+            document.getElementById('breakdown').style.display = 'none';
+            document.getElementById('pleisterDikteRow').style.display = 'none';
+            document.getElementById('xpsDikteRow').style.display = 'none';
+            document.getElementById('egalisatieDikteRow').style.display = 'none';
+            document.getElementById('bijkomendePleisterDikteRow').style.display = 'none';
+            document.getElementById('bijkomendeSeparator').style.display = 'none';
+        }
+
+        function calculate() {
+            const oppervlakte = parseFloat(document.getElementById('oppervlakte').value) || 0;
+            const zakkenPleister = parseFloat(document.getElementById('zakkenPleister').value) || 0;
+            const zakkenEgalisatie = parseFloat(document.getElementById('zakkenEgalisatie').value) || 0;
+            const xpsPlaten = parseFloat(document.getElementById('xpsPlaten').value) || 0;
+            const xpsDikte = parseFloat(document.getElementById('xpsDikte').value) || 0;
+
+            if (oppervlakte === 0) {
+                document.getElementById('resultValue').textContent = '--';
+                document.getElementById('breakdown').style.display = 'none';
+                return;
+            }
+
+            // Константи
+            const PLEISTER_RENDEMENT = 2.9; // м² на мішок при 10мм (середнє MP75 3.0 та Snelband 2.8)
+            const EGALISATIE_KG_PER_MM_M2 = 2; // кг на мм на м² для Mixemsub
+            const XPS_OPPERVLAK_PER_PLAAT = 0.75; // m² (1250×600mm)
+
+            // Розрахувати об'єм штукатурки в мм·м²
+            const pleisterVolumeMm = zakkenPleister * PLEISTER_RENDEMENT * 10;
+            const gemiddeldePleisterdikteMm = pleisterVolumeMm / oppervlakte;
+
+            // Розрахувати товщину вирівнювання
+            let gemiddeldeEgalisatieDikteMm = 0;
+            if (zakkenEgalisatie > 0) {
+                const totaalKgEgalisatie = zakkenEgalisatie * 25;
+                const kgPerM2 = totaalKgEgalisatie / oppervlakte;
+                gemiddeldeEgalisatieDikteMm = kgPerM2 / EGALISATIE_KG_PER_MM_M2;
+            }
+
+            // Розрахувати внесок XPS
+            const xpsOppervlak = xpsPlaten * XPS_OPPERVLAK_PER_PLAAT;
+            const xpsVolumeMm = xpsOppervlak * xpsDikte;
+            const gemiddeldeXpsDikteMm = xpsVolumeMm / oppervlakte;
+
+            // Загальна товщина в мм
+            const totaleDikteMm = gemiddeldePleisterdikteMm + gemiddeldeEgalisatieDikteMm + gemiddeldeXpsDikteMm;
+
+            // Розрахувати додаткову загальну товщину (Середня Загальна Товщина - 20мм, тільки якщо > 0)
+            let bijkomendePleisterdikteMm = totaleDikteMm - 20;
+            const toonBijkomende = bijkomendePleisterdikteMm > 0;
+
+            // Оновити відображення - одиниця поруч зі значенням
+            document.getElementById('resultValue').textContent = totaleDikteMm.toFixed(2);
+            
+            // Показати штукатурку тільки якщо використовується
+            if (zakkenPleister > 0) {
+                document.getElementById('pleisterDikte').textContent = 
+                    gemiddeldePleisterdikteMm.toFixed(2) + ' mm';
+                document.getElementById('pleisterDikteRow').style.display = 'flex';
+            } else {
+                document.getElementById('pleisterDikteRow').style.display = 'none';
+            }
+            
+            // Показати XPS тільки якщо використовується
+            if (xpsPlaten > 0 && xpsDikte > 0) {
+                document.getElementById('xpsDikteGem').textContent = 
+                    gemiddeldeXpsDikteMm.toFixed(2) + ' mm';
+                document.getElementById('xpsDikteRow').style.display = 'flex';
+            } else {
+                document.getElementById('xpsDikteRow').style.display = 'none';
+            }
+            
+            // Показати вирівнювання тільки якщо використовується
+            if (zakkenEgalisatie > 0) {
+                document.getElementById('egalisatieDikte').textContent = 
+                    gemiddeldeEgalisatieDikteMm.toFixed(2) + ' mm';
+                document.getElementById('egalisatieDikteRow').style.display = 'flex';
+            } else {
+                document.getElementById('egalisatieDikteRow').style.display = 'none';
+            }
+            
+            // Додаткова товщина штукатурки (показати тільки якщо > 0)
+            if (toonBijkomende) {
+                document.getElementById('bijkomendePleisterDikte').textContent = 
+                    bijkomendePleisterdikteMm.toFixed(2) + ' mm';
+                document.getElementById('bijkomendePleisterDikteRow').style.display = 'flex';
+                document.getElementById('bijkomendeSeparator').style.display = 'block';
+            } else {
+                document.getElementById('bijkomendePleisterDikteRow').style.display = 'none';
+                document.getElementById('bijkomendeSeparator').style.display = 'none';
+            }
+            
+            document.getElementById('breakdown').style.display = 'block';
+        }
+    </script>
+</body>
+</html>
