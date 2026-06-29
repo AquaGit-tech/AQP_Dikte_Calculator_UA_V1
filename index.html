@@ -172,6 +172,7 @@
         .breakdown-bijkomend { font-weight: 600; font-size: 17px; }
 
         .footer { text-align: center; margin-top: 8px; color: #999; font-size: 8.5px; }
+        .footer-basis { margin-top: 4px; line-height: 1.4; }
     </style>
 </head>
 <body>
@@ -255,24 +256,37 @@
         </div>
 
         <div class="footer" id="footer"></div>
+        <div class="footer footer-basis" id="footerBasis"></div>
     </div>
 
     <script>
         // === Vertalingen (per taal ingevuld door de generator) ===
-        var T = {"lang": "uk", "locale": "uk-UA", "title": "Калькулятор товщини штукатурки", "resetAria": "Скинути", "addAria": "Додати тип ізоляції", "removeAria": "Видалити", "clientPh": "Ім'я клієнта або адреса об'єкта", "ghOpp": "Загальна площа", "phOpp": "Загальна площа (м²)", "unitM2": "м²", "ghPleister": "Гіпсова штукатурка", "phPleister": "Загальна кількість мішків (MP75/Snelband - 25кг)", "unitPleister": "x 25кг - MP75/Snelband", "ghXps": "Ізоляція XPS", "phXps": "К-сть плит (1250×600)", "unitXps": "шт - 1250×600мм", "phDikte": "Товщина (мм)", "unitMm": "мм", "ghEgal": "Вирівнювання стіни", "phEgal": "Загальна кількість мішків (Mixem Sub - 25кг)", "unitEgal": "x 25кг - Mixemsub", "resultLabel": "Середня загальна товщина", "lblPleister": "Штукатурка, середня товщина:", "lblXps": "XPS, середня товщина:", "lblEgal": "Вирівнювання, середня товщина:", "lblBijkomend": "Додатково, середня загальна товщина:", "footer": "Орієнтовно. Додатково = середня загальна товщина понад 20 мм."};
+        var T = {"lang": "uk", "locale": "uk-UA", "title": "Калькулятор товщини штукатурки", "resetAria": "Скинути", "addAria": "Додати тип ізоляції", "removeAria": "Видалити", "clientPh": "Ім'я клієнта або адреса об'єкта", "ghOpp": "Загальна площа", "phOpp": "Загальна площа (м²)", "unitM2": "м²", "ghPleister": "Гіпсова штукатурка", "phPleister": "Загальна кількість мішків (MP75/Snelband - 25кг)", "unitPleister": "x 25кг - MP75/Snelband", "ghXps": "Ізоляція XPS", "phXps": "К-сть плит (1250×600)", "unitXps": "шт - 1250×600мм", "phDikte": "Товщина (см)", "unitCm": "см", "ghEgal": "Вирівнювання стіни", "phEgal": "Загальна кількість мішків (Mixem Sub - 25кг)", "unitEgal": "x 25кг - Mixemsub", "resultLabel": "Середня загальна товщина", "lblPleister": "Штукатурка, середня товщина:", "lblXps": "XPS, середня товщина:", "lblEgal": "Вирівнювання, середня товщина:", "lblBijkomend": "Додатково, середня загальна товщина:", "footer": "Орієнтовно. Додатково = середня загальна товщина понад 2 см.", "basisIntro": "Основа розрахунку (Knauf TDS): ", "basisPleister": "гіпсова штукатурка MP 75/Snelband 8,0 кг/м² на см товщини (8,0 кг/м² при 10 мм)", "basisEgal": "вирівнювання MiXem Sub 16,53 кг/м² на см товщини (24,8 кг/м² при 15 мм)", "basisXps": "плита XPS 0,75 м²/плита (1250×600 мм)"};
 
-        // Rekenconstanten - conform de Knauf TDS'en
-        var PLEISTER_RENDEMENT = 3.0;        // m2/zak bij 10mm. Knauf MP75 E en Snelband: 8,0 kg/m2, opbrengst ca. 3,0 m2/zak
+        // Rekenconstanten - exact conform de Knauf TDS'en (geen afronding)
+        var PLEISTER_KG_PER_MM_M2 = 8.0 / 10;     // Knauf MP 75 E EN Snelband: beide 8,0 kg/m2 bij 10mm -> 0,80 kg/mm/m2 (opbrengst exact 25/8,0 = 3,125 m2/zak). Zelfde verbruik => 1 constante voor beide.
+        var ZAK_KG = 25;                          // zakgewicht (MP75/Snelband en Mixem Sub)
         var EGALISATIE_KG_PER_MM_M2 = 24.8 / 15;  // Knauf MiXem Sub: 24,8 kg/m2 bij 15mm -> 1,653 kg/mm/m2
         var XPS_OPPERVLAK_PER_PLAAT = 0.75;  // m2 (plaat 1250x600mm = 0,75 m2)
-        var BIJKOMEND_DREMPEL_MM = 20;       // gemiddelde totaaldikte boven 20mm = bijkomend
+        var BIJKOMEND_DREMPEL_MM = 20;       // gemiddelde totaaldikte boven 20mm (= 2 cm) = bijkomend
+        var MM_PER_CM = 10;                  // interne motor rekent in mm; weergave in cm
 
         var inputs = ['oppervlakte', 'zakkenPleister', 'zakkenEgalisatie'];
 
         function nf(x, d) {
             return x.toLocaleString(T.locale, { minimumFractionDigits: d, maximumFractionDigits: d });
         }
-        function mm(x) { return nf(x, 2) + ' ' + T.unitMm; }
+        function round2(x) { return Math.round(x * 100) / 100; }          // afronden op 2 decimalen
+        function cmTxt(v) { return nf(v, 2) + ' ' + T.unitCm; }            // v is reeds in cm (2 decimalen)
+
+        // Disclaimer-basis: enkel de daadwerkelijk gebruikte producten tonen
+        function buildBasis(hasP, hasE, hasX) {
+            var parts = [];
+            if (hasP) parts.push(T.basisPleister);
+            if (hasE) parts.push(T.basisEgal);
+            if (hasX) parts.push(T.basisXps);
+            return parts.length ? (T.basisIntro + parts.join('; ') + '.') : '';
+        }
 
         function updateUnitPosition(element) {
             var unit = element.nextElementSibling;
@@ -327,9 +341,10 @@
             sel.className = 'xps-dikte placeholder-active';
             var o0 = document.createElement('option'); o0.value = '0'; o0.textContent = T.phDikte; sel.appendChild(o0);
             [20, 30, 40, 50, 60].forEach(function(v) {
-                var o = document.createElement('option'); o.value = v; o.textContent = v; sel.appendChild(o);
+                // value blijft mm (motor rekent in mm); label toont cm
+                var o = document.createElement('option'); o.value = v; o.textContent = nf(v / MM_PER_CM, 0); sel.appendChild(o);
             });
-            var u2 = document.createElement('span'); u2.className = 'input-unit'; u2.textContent = T.unitMm;
+            var u2 = document.createElement('span'); u2.className = 'input-unit'; u2.textContent = T.unitCm;
             c2.appendChild(sel); c2.appendChild(u2);
 
             var fields = document.createElement('div'); fields.className = 'xps-fields';
@@ -379,12 +394,13 @@
             document.getElementById('zakkenEgalisatie').placeholder = T.phEgal;
             setText('u-egal', T.unitEgal);
             setText('resultLabel', T.resultLabel);
-            setText('u-result', T.unitMm);
+            setText('u-result', T.unitCm);
             setText('lbl-pleister', T.lblPleister);
             setText('lbl-xps', T.lblXps);
             setText('lbl-egal', T.lblEgal);
             setText('lbl-bijkomend', T.lblBijkomend);
             setText('footer', T.footer);
+            // footerBasis wordt dynamisch gevuld in calculate() (enkel gebruikte producten)
         }
 
         applyT();
@@ -403,6 +419,7 @@
             document.getElementById('egalisatieDikteRow').style.display = 'none';
             document.getElementById('bijkomendeRow').style.display = 'none';
             document.getElementById('bijkomendeSeparator').style.display = 'none';
+            document.getElementById('footerBasis').textContent = '';
         }
 
         function calculate() {
@@ -410,52 +427,60 @@
             var zakkenPleister = parseFloat(document.getElementById('zakkenPleister').value) || 0;
             var zakkenEgalisatie = parseFloat(document.getElementById('zakkenEgalisatie').value) || 0;
 
-            if (oppervlakte === 0) {
-                document.getElementById('resultValue').textContent = '--';
-                document.getElementById('breakdown').style.display = 'none';
-                return;
-            }
-
-            // Pleister: zakken x rendement x 10mm = volume (mm*m2); /opp = gem. dikte
-            var gemPleister = (zakkenPleister * PLEISTER_RENDEMENT * 10) / oppervlakte;
-
-            // Egalisatie: zakken x 25kg -> kg/m2 -> /2 = mm
-            var gemEgalisatie = 0;
-            if (zakkenEgalisatie > 0) {
-                gemEgalisatie = ((zakkenEgalisatie * 25) / oppervlakte) / EGALISATIE_KG_PER_MM_M2;
-            }
-
-            // XPS: som van alle rijen (platen x 0,75 m2 x dikte) = volume; /opp = gem. dikte
+            // XPS: som van alle rijen (platen x 0,75 m2 x dikte) = volume; aanwezigheid los van oppervlakte
             var xpsVol = 0, xpsAny = false;
             document.querySelectorAll('#xps-rows .xps-row').forEach(function(row) {
                 var pl = parseFloat(row.querySelector('.xps-platen').value) || 0;
                 var dk = parseFloat(row.querySelector('.xps-dikte').value) || 0;
                 if (pl > 0 && dk > 0) { xpsVol += pl * XPS_OPPERVLAK_PER_PLAAT * dk; xpsAny = true; }
             });
+
+            // Disclaimer: enkel de daadwerkelijk gebruikte producten
+            document.getElementById('footerBasis').textContent = buildBasis(zakkenPleister > 0, zakkenEgalisatie > 0, xpsAny);
+
+            if (oppervlakte === 0) {
+                document.getElementById('resultValue').textContent = '--';
+                document.getElementById('breakdown').style.display = 'none';
+                return;
+            }
+
+            // Pleister: zakken x 25kg -> kg/m2 -> /0,80 kg/mm/m2 = gem. dikte (mm), exact uit 8,0 kg/m2 @10mm
+            var gemPleister = ((zakkenPleister * ZAK_KG) / oppervlakte) / PLEISTER_KG_PER_MM_M2;
+
+            // Egalisatie: zakken x 25kg -> kg/m2 -> /1,653 = mm
+            var gemEgalisatie = 0;
+            if (zakkenEgalisatie > 0) {
+                gemEgalisatie = ((zakkenEgalisatie * ZAK_KG) / oppervlakte) / EGALISATIE_KG_PER_MM_M2;
+            }
+
             var gemXps = xpsVol / oppervlakte;
 
-            var totaal = gemPleister + gemEgalisatie + gemXps;
-            var bijkomend = totaal - BIJKOMEND_DREMPEL_MM;
+            // Elk deel eerst op 2 decimalen (cm), daarna optellen -> getoonde delen tellen exact op tot het totaal
+            var pleisterCm = round2(gemPleister / MM_PER_CM);
+            var egalisatieCm = round2(gemEgalisatie / MM_PER_CM);
+            var xpsCm = round2(gemXps / MM_PER_CM);
+            var totaalCm = round2(pleisterCm + egalisatieCm + xpsCm);
+            var bijkomendCm = round2(totaalCm - (BIJKOMEND_DREMPEL_MM / MM_PER_CM));
 
-            document.getElementById('resultValue').textContent = nf(totaal, 2);
+            document.getElementById('resultValue').textContent = nf(totaalCm, 2);
 
             if (zakkenPleister > 0) {
-                document.getElementById('pleisterDikte').textContent = mm(gemPleister);
+                document.getElementById('pleisterDikte').textContent = cmTxt(pleisterCm);
                 document.getElementById('pleisterDikteRow').style.display = 'flex';
             } else { document.getElementById('pleisterDikteRow').style.display = 'none'; }
 
             if (xpsAny) {
-                document.getElementById('xpsDikteGem').textContent = mm(gemXps);
+                document.getElementById('xpsDikteGem').textContent = cmTxt(xpsCm);
                 document.getElementById('xpsDikteRow').style.display = 'flex';
             } else { document.getElementById('xpsDikteRow').style.display = 'none'; }
 
             if (zakkenEgalisatie > 0) {
-                document.getElementById('egalisatieDikte').textContent = mm(gemEgalisatie);
+                document.getElementById('egalisatieDikte').textContent = cmTxt(egalisatieCm);
                 document.getElementById('egalisatieDikteRow').style.display = 'flex';
             } else { document.getElementById('egalisatieDikteRow').style.display = 'none'; }
 
-            if (bijkomend > 0) {
-                document.getElementById('bijkomendeDikte').textContent = mm(bijkomend);
+            if (bijkomendCm > 0) {
+                document.getElementById('bijkomendeDikte').textContent = cmTxt(bijkomendCm);
                 document.getElementById('bijkomendeRow').style.display = 'flex';
                 document.getElementById('bijkomendeSeparator').style.display = 'block';
             } else {
