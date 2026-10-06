@@ -1,10 +1,10 @@
 /* Pleisterdikte Calculator (uk) - service worker
    Offline-werking op de werf. navigate=network-first, assets=cache-first.
    Deploy = index.html in mapwortel; precache de wortel-navigatie ('./'). */
-var CACHE = 'aqp-pleisterdikte-uk-v1-2-0';
+var CACHE = 'aqp-pleisterdikte-uk-v1-3-11';
 self.addEventListener('install', function(e) {
     e.waitUntil(caches.open(CACHE).then(function(c) {
-        return c.addAll(['./']).catch(function() {});
+        return c.addAll(['./', './html2canvas.min.js']).catch(function() {});
     }).then(function() { return self.skipWaiting(); }));
 });
 self.addEventListener('activate', function(e) { e.waitUntil(self.clients.claim()); });
